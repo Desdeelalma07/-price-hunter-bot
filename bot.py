@@ -7,6 +7,21 @@ import urllib.parse
 TOKEN = os.environ["BOT_TOKEN"]
 API = f"https://api.telegram.org/bot{TOKEN}"
 
+FILE = "products.json"
+
+
+def load_products():
+    try:
+        with open(FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
+
+def save_products(products):
+    with open(FILE, "w", encoding="utf-8") as f:
+        json.dump(products, f, ensure_ascii=False, indent=2)
+
 
 def telegram(method, data=None):
     url = f"{API}/{method}"
@@ -41,6 +56,9 @@ def main():
     else:
         offset = 0
 
+    products = load_products()
+
+    print(f"📦 Загружено товаров: {len(products)}")
     print("📡 Ожидаю сообщения...")
 
     while True:
@@ -62,58 +80,80 @@ def main():
 
                 print(f"📩 Получено: {text}")
 
-                # /start
                 if text == "/start":
                     send_message(
                         chat_id,
                         "🤖 Охотник за ценами онлайн!\n\n"
-                        "Используй:\n"
                         "/add — добавить товар\n"
-                        "/add ссылка — сразу добавить товар"
+                        "/add ссылка — добавить товар сразу\n"
+                        "/list — показать товары"
                     )
 
-                # /add
                 elif text == "/add":
                     send_message(
                         chat_id,
-                        "🔗 Отлично!\n\n"
-                        "Отправь ссылку на товар."
+                        "🔗 Отправь ссылку на товар."
                     )
 
-                # /add + ссылка
                 elif text.startswith("/add "):
                     link = text[5:].strip()
 
-                    if link.startswith("http://") or link.startswith("https://"):
-                        send_message(
-                            chat_id,
-                            "🔎 Ссылка получена!\n\n"
-                            f"{link}\n\n"
-                            "🛒 Товар добавлен в список.\n"
-                            "Следующий этап — получение цены."
-                        )
-                    else:
+                    if not link.startswith(("http://", "https://")):
                         send_message(
                             chat_id,
                             "❌ После /add должна быть ссылка."
                         )
+                        continue
 
-                # обычная ссылка
+                    if link in products:
+                        send_message(
+                            chat_id,
+                            "⚠️ Этот товар уже есть в списке."
+                        )
+                        continue
+
+                    products.append(link)
+                    save_products(products)
+
+                    send_message(
+                        chat_id,
+                        "✅ Товар добавлен!\n\n"
+                        f"🔗 {link}\n\n"
+                        f"📦 Всего товаров: {len(products)}"
+                    )
+
+                elif text == "/list":
+                    if not products:
+                        send_message(
+                            chat_id,
+                            "📭 Список пока пуст.\n\n"
+                            "Добавь товар командой:\n"
+                            "/add ссылка"
+                        )
+                    else:
+                        result_text = "📦 Отслеживаемые товары:\n\n"
+
+                        for i, product in enumerate(products, 1):
+                            result_text += f"{i}. {product}\n\n"
+
+                        send_message(chat_id, result_text)
+
                 elif text.startswith("http://") or text.startswith("https://"):
                     send_message(
                         chat_id,
-                        "🔎 Ссылка получена!\n\n"
-                        f"{text}"
+                        "🔎 Ссылка получена.\n\n"
+                        "Чтобы добавить товар в мониторинг, "
+                        "используй:\n\n"
+                        f"/add {text}"
                     )
 
                 else:
                     send_message(
                         chat_id,
                         "🤔 Я понимаю:\n\n"
-                        "/start\n"
                         "/add\n"
-                        "/add ссылка\n\n"
-                        "И ссылки на товары."
+                        "/add ссылка\n"
+                        "/list"
                     )
 
         except Exception as e:
