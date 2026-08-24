@@ -3,6 +3,7 @@ import time
 import json
 import urllib.request
 import urllib.parse
+import urllib.error
 
 TOKEN = os.environ["BOT_TOKEN"]
 API = f"https://api.telegram.org/bot{TOKEN}"
@@ -38,6 +39,43 @@ def send_message(chat_id, text):
         "chat_id": chat_id,
         "text": text
     })
+
+
+def check_price(url):
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 Chrome/131.0 Safari/537.36"
+            )
+        }
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            status = response.status
+            html = response.read().decode("utf-8", errors="ignore")
+
+            return {
+                "status": status,
+                "length": len(html),
+                "error": None
+            }
+
+    except urllib.error.HTTPError as e:
+        return {
+            "status": e.code,
+            "length": 0,
+            "error": f"HTTP {e.code}"
+        }
+
+    except Exception as e:
+        return {
+            "status": None,
+            "length": 0,
+            "error": str(e)
+        }
 
 
 def main():
@@ -84,9 +122,9 @@ def main():
                     send_message(
                         chat_id,
                         "🤖 Охотник за ценами онлайн!\n\n"
-                        "/add — добавить товар\n"
-                        "/add ссылка — добавить товар сразу\n"
-                        "/list — показать товары"
+                        "/add ссылка — добавить товар\n"
+                        "/list — список товаров\n"
+                        "/price — проверить цену"
                     )
 
                 elif text == "/add":
@@ -126,9 +164,7 @@ def main():
                     if not products:
                         send_message(
                             chat_id,
-                            "📭 Список пока пуст.\n\n"
-                            "Добавь товар командой:\n"
-                            "/add ссылка"
+                            "📭 Список пока пуст."
                         )
                     else:
                         result_text = "📦 Отслеживаемые товары:\n\n"
@@ -138,22 +174,57 @@ def main():
 
                         send_message(chat_id, result_text)
 
-                elif text.startswith("http://") or text.startswith("https://"):
+                elif text == "/price":
+                    if not products:
+                        send_message(
+                            chat_id,
+                            "📭 Сначала добавь товар через /add."
+                        )
+                        continue
+
+                    link = products[0]
+
                     send_message(
                         chat_id,
-                        "🔎 Ссылка получена.\n\n"
-                        "Чтобы добавить товар в мониторинг, "
-                        "используй:\n\n"
-                        f"/add {text}"
+                        "🔎 Пытаюсь получить страницу товара..."
                     )
+
+                    result = check_price(link)
+
+                    if result["status"] == 200:
+                        send_message(
+                            chat_id,
+                            "✅ Ozon отдал страницу!\n\n"
+                            f"HTTP: {result['status']}\n"
+                            f"Размер ответа: {result['length']} байт\n\n"
+                            "Следующий этап — найти в ответе "
+                            "название и цену."
+                        )
+
+                    elif result["status"]:
+                        send_message(
+                            chat_id,
+                            "⚠️ Ozon не отдал страницу.\n\n"
+                            f"HTTP: {result['status']}\n\n"
+                            "Это значит, что обычный серверный "
+                            "запрос заблокирован. Будем использовать "
+                            "другой способ получения цены."
+                        )
+
+                    else:
+                        send_message(
+                            chat_id,
+                            "❌ Не удалось получить страницу.\n\n"
+                            f"Ошибка: {result['error']}."
+                        )
 
                 else:
                     send_message(
                         chat_id,
-                        "🤔 Я понимаю:\n\n"
-                        "/add\n"
+                        "🤔 Доступные команды:\n\n"
                         "/add ссылка\n"
-                        "/list"
+                        "/list\n"
+                        "/price"
                     )
 
         except Exception as e:
