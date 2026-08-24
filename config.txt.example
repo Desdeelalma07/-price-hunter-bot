@@ -1,0 +1,41 @@
+# Example configuration file for Ozon Price Tracker Bot
+# Copy this file to config.txt and modify the values
+
+# Telegram bot token from @BotFather
+BOT_TOKEN=
+
+# Interval between price checks (in seconds)
+# Default: 1800 (30 minutes)
+CHECK_INTERVAL=1800
+
+# Minimum price change percentage to trigger notification
+# Default: 1 (notify on >= 1% change)
+PRICE_CHANGE_THRESHOLD=1
+
+# Notification direction: both, down, up
+# both - notify on any change
+# down - notify only on price decrease
+# up - notify only on price increase
+NOTIFICATION_DIRECTION=both
+
+# Use test cookie method before Playwright fallback
+# true  - first try Selenium cookies, then fallback to Playwright
+# false - use only Playwright browser emulation
+USE_TEST_COOKIE_METHOD=true
+
+# Proxy settings for Telegram connection
+# Supported values for Telegram transport: none, socks5h, https
+PROXY_TYPE=none
+
+# Proxy URL (format: protocol://host:port)
+# Example SOCKS proxy: socks5h://127.0.0.1:1080
+# Example HTTPS proxy: https://127.0.0.1:8080
+PROXY_URL=
+
+# Proxy authentication (optional, leave empty if not needed)
+PROXY_USER=
+PROXY_PASS=
+
+# Admin user ID for /status and /monitoring commands
+# Leave empty to allow all users access
+ADMIN_ID=
