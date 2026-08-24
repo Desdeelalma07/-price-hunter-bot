@@ -408,20 +408,21 @@ config = BotConfig()
 
 
 def load_bot_token() -> str:
-    """Загрузить токен бота из config.txt, fallback — token.txt."""
-    if config.bot_token:
-        return config.bot_token
+    """Загрузить токен Telegram из переменной окружения."""
+    token = os.environ.get("BOT_TOKEN")
 
-    try:
-        with open(TOKEN_PATH, 'r', encoding='utf-8') as f:
-            token = f.read().strip()
-            if not token:
-                raise ValueError("Токен пустой")
-            logger.warning("BOT_TOKEN не найден в config.txt, использую устаревший fallback token.txt")
-            return token
-    except Exception as e:
-        logger.error(f"Ошибка чтения BOT_TOKEN из config.txt и fallback token.txt: {e}")
-        raise
+    if token:
+        logger.info("BOT_TOKEN успешно загружен из переменных окружения")
+        return token.strip()
+
+    # Локальный запуск: пробуем config.txt
+    if config.bot_token:
+        logger.info("BOT_TOKEN загружен из config.txt")
+        return config.bot_token.strip()
+
+    raise RuntimeError(
+        "BOT_TOKEN не найден. Добавь переменную BOT_TOKEN в Railway Variables."
+    )
 
 
 # === Обработчики команд ===
